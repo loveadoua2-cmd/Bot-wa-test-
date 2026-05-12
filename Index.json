@@ -1,0 +1,56 @@
+import pkg from 'whatsapp-web.js';
+import qrcode from 'qrcode-terminal';
+import fs from 'fs';
+
+const { Client, LocalAuth } = pkg;
+
+// Créer le dossier d'authentification s'il n'existe pas
+if (!fs.existsSync('./auth')) fs.mkdirSync('./auth');
+
+const client = new Client({
+    authStrategy: new LocalAuth({
+        dataPath: './auth',
+    }),
+    puppeteer: {
+        headless: true,
+        args: ['--no-sandbox', '--disable-setuid-sandbox']
+    }
+});
+
+let qrCodeRecu = false;
+
+client.on('qr', (qr) => {
+    if (!qrCodeRecu) {
+        console.log('\n🔐 QR CODE À SCANNER 🔐\n');
+        qrcode.generate(qr, { small: true });
+        console.log('\n→ Va dans WhatsApp > Appareils connectés > Lier un appareil\n');
+        qrCodeRecu = true;
+    }
+});
+
+client.on('ready', () => {
+    console.log('\n✅ BOT CONNECTÉ !\n');
+    console.log('🤖 Le bot est prêt à répondre');
+});
+
+client.on('message', async (message) => {
+    if (message.body === '!ping') {
+        await message.reply('🏓 Pong !');
+    }
+    
+    if (message.body === '!info') {
+        await message.reply('🤖 Bot WhatsApp qui tourne sur GitHub Actions');
+    }
+    
+    if (message.body === '!aide') {
+        await message.reply('Commandes : !ping, !info, !aide');
+    }
+});
+
+client.initialize();
+
+// Arrêter le bot après 10 minutes pour éviter un timeout
+setTimeout(() => {
+    console.log('⏰ Fin de session, redémarrage dans 10 min...');
+    process.exit(0);
+}, 10 * 60 * 1000);
